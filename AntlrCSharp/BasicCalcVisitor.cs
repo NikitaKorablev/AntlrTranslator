@@ -10,35 +10,51 @@ using AntlrCSharp;
 using static calcParser;
 
 namespace AntlrCSharp {
-    public class FUNCS {
-        public Dictionary<string, List<Dictionary<string, int>>> f = new Dictionary<string, List<Dictionary<string, int>>>();
+    public class DICTS {
+        public Dictionary<string, int> VARS = new Dictionary<string, int>();
+        public int res = 0;
     }
 
     public class CalcUserVisitor : calcBaseVisitor<object>
-    { 
-        public Dictionary<string, int> VARS = new Dictionary<string, int>();
-        
+    {
         // list [0] - dictionary for function params
         // list [1] - dictionary for vars in function
-        // public Dictionary<string, List<Dictionary<string, int>>> FUNCS = new Dictionary<string, List<Dictionary<string, int>>>(); 
-        public List<FUNCS> funcsList = new List<FUNCS>();
+        public Dictionary<string, DICTS> VarsDict = new Dictionary<string, DICTS>();
+        public int nesting = -1;
 
-
-        public void showDictionary() {
-            foreach (KeyValuePair<string, int> el in VARS) {
+        public void showDictionary(int i = 0) {
+            foreach (KeyValuePair<string, int> el in VarsDict.ElementAt(i).Value.VARS) {
                     Console.WriteLine($"{el.Key} = {el.Value}");
                 }
+        }
+        public void upNest(string name) {
+            DICTS d = new DICTS();
+            VarsDict.Add(name, d);
+            nesting++;
+        }
+        public void downNest() {
+            if (nesting != 0) {
+                int res = VarsDict.ElementAt(VarsDict.Count - 1).Value.res;
+                string let = VarsDict.ElementAt(VarsDict.Count - 1).Key;
+                VarsDict.Remove(let);
+
+                string name = VarsDict.ElementAt(VarsDict.Count - 1).Key;
+                VarsDict[name].VARS.Add(let, res);
+
+                nesting--;
+            }
         }
 
         public override object VisitOneLineProg([NotNull] OneLineProgContext context)
         {
-            Console.WriteLine("OneLineProg");
+            if (VarsDict.Count() == 0) upNest("main");
+            // Console.WriteLine("OneLineProg");
             return Visit(context.state());
         }
 
         public override object VisitMultLineProg([NotNull] MultLineProgContext context)
         {
-            Console.WriteLine("MultLineProg");
+            // Console.WriteLine("MultLineProg");
             Visit(context.prog());
             return Visit(context.state());
         }
@@ -64,38 +80,38 @@ namespace AntlrCSharp {
         //------Base-Line-(Let)-------------------------------------------------------
         public override object VisitIDeqEXPR([NotNull] IDeqEXPRContext context)
         {
-            Console.WriteLine("IDeqEXPR");
+            // Console.WriteLine("IDeqEXPR");
             string name = context.ID().GetText();
             int val = int.Parse((string)Visit(context.expr()).ToString());
 
-            VARS.Add(name, val);
+            VarsDict.ElementAt(nesting).Value.VARS.Add(name, val);
             return val;
         }
         
         public override object VisitIDeqID([NotNull] IDeqIDContext context)
         {
-            Console.WriteLine("IDeqID");
+            // Console.WriteLine("IDeqID");
             string firstVar = context.ID(0).GetText();
             string secondVar = context.ID(1).GetText();
             
             int val = 0;
-            if (VARS.ContainsKey(secondVar)) val = VARS[secondVar];
+            if (VarsDict.ElementAt(nesting).Value.VARS.ContainsKey(secondVar)) val = VarsDict.ElementAt(nesting).Value.VARS[secondVar];
             else Console.Error.WriteLine($"Can`t find {secondVar} value");
 
-            if (VARS.ContainsKey(firstVar)) VARS[firstVar] = val;
-            else VARS.Add(firstVar, val);
+            if (VarsDict.ElementAt(nesting).Value.VARS.ContainsKey(firstVar)) VarsDict.ElementAt(nesting).Value.VARS[firstVar] = val;
+            else VarsDict.ElementAt(nesting).Value.VARS.Add(firstVar, val);
 
             return val;
         }
 
         public override object VisitIDeqINT([NotNull] IDeqINTContext context)
         {
-            Console.WriteLine("IDeqINT");
+            // Console.WriteLine("IDeqINT");
             string name = context.ID().GetText();
             int val = int.Parse(context.INT().GetText());
 
-            if (VARS.ContainsKey(name)) VARS[name] = val;
-            else VARS.Add(name, val);
+            if (VarsDict.ElementAt(nesting).Value.VARS.ContainsKey(name)) VarsDict.ElementAt(nesting).Value.VARS[name] = val;
+            else VarsDict.ElementAt(nesting).Value.VARS.Add(name, val);
 
             return val;
         }
@@ -113,7 +129,7 @@ namespace AntlrCSharp {
 
         public override object VisitVarsExpression([NotNull] VarsExpressionContext context)
         {
-            Console.WriteLine("VarsExpression");
+            // Console.WriteLine("VarsExpression");
             // Console.WriteLine(context.INT().GetText());
             if (context.INT(0) != null && context.INT(1) != null)
             {
@@ -129,22 +145,25 @@ namespace AntlrCSharp {
                 char op = context.op().GetText()[0];
 
                 string var = context.ID(0).GetText();
-                if (VARS.ContainsKey(var)) secondVal = VARS[var];
+                if (VarsDict.ElementAt(nesting).Value.VARS.ContainsKey(var)) secondVal = VarsDict.ElementAt(nesting).Value.VARS[var];
                 else Console.Error.WriteLine($"Can`t find {var} value");
 
+                // Console.WriteLine(firstVal + " " + secondVal);
                 return calcOp(op, firstVal, secondVal);
-            } else if (context.ID(0) != null && context.INT(0) != null)
-            {
-                int firstVal = 0;
-                int secondVal = int.Parse(context.INT(0).GetText());
-                char op = context.op().GetText()[0];
+            } 
+            // else if (context.ID(0) != null && context.INT(0) != null)
+            // {
+            //     int firstVal = 0;
+            //     int secondVal = int.Parse(context.INT(0).GetText());
+            //     char op = context.op().GetText()[0];
 
-                string var = context.ID(0).GetText();
-                if (VARS.ContainsKey(var)) firstVal = VARS[var];
-                else Console.Error.WriteLine($"Can`t find {var} value");
+            //     string var = context.ID(0).GetText();
+            //     if (VarsDict.ElementAt(nesting).Value.VARS.ContainsKey(var)) firstVal = VarsDict.ElementAt(nesting).Value.VARS[var];
+            //     else Console.Error.WriteLine($"Can`t find {var} value");
 
-                return calcOp(op, firstVal, secondVal);
-            } else // if (context.ID(0) != null && context.ID(1) != null)
+            //     return calcOp(op, firstVal, secondVal);
+            // } 
+            else // if (context.ID(0) != null && context.ID(1) != null)
             {
                 int firstVal = 0;
                 int secondVal = 1;
@@ -153,10 +172,10 @@ namespace AntlrCSharp {
                 string firstVar = context.ID(0).GetText();
                 string secondVar = context.ID(1).GetText();
 
-                if (VARS.ContainsKey(firstVar)) firstVal = VARS[firstVar];
+                if (VarsDict.ElementAt(nesting).Value.VARS.ContainsKey(firstVar)) firstVal = VarsDict.ElementAt(nesting).Value.VARS[firstVar];
                 else Console.Error.WriteLine($"Can`t find {firstVar} value");
 
-                if (VARS.ContainsKey(firstVar)) secondVal = VARS[secondVar];
+                if (VarsDict.ElementAt(nesting).Value.VARS.ContainsKey(secondVar)) secondVal = VarsDict.ElementAt(nesting).Value.VARS[secondVar];
                 else Console.Error.WriteLine($"Can`t find {secondVar} value");
 
                 return calcOp(op, firstVal, secondVal);
@@ -165,7 +184,7 @@ namespace AntlrCSharp {
 
         //------Print--------------------------------------------------------
         public override object VisitPrintIntId([NotNull] PrintIntIdContext context) {
-            Console.WriteLine("PrintIntId");
+            // Console.WriteLine("PrintIntId");
             if (context.INT() != null) 
             {
                 Console.WriteLine(context.INT().GetText());
@@ -173,18 +192,86 @@ namespace AntlrCSharp {
             else {
                 // showDictionary();
                 string var = (string)context.ID().GetText();
-
-                if (VARS.ContainsKey(var)) Console.WriteLine($"{var} = {VARS[var]}");
+                
+                if (VarsDict.ElementAt(nesting).Value.VARS.ContainsKey(var)) Console.WriteLine($"{var} = {VarsDict.ElementAt(nesting).Value.VARS[var]}");
                 else Console.Error.WriteLine($"Can`t find {var} value");
             }
 
+
+
             return base.VisitPrintIntId(context);
         }
-        public override object VisitDef([NotNull] DefContext context)
+        public override object VisitDefState([NotNull] DefStateContext context)
         {
+            string funName = context.ID(0).GetText();
+            upNest(funName);
 
+            string name;
+            int val;
 
-            return base.VisitDef(context);
+            int idCount;
+            if (context.expr() == null && context.INT() == null) idCount = context.ID().Count()-1;
+            else idCount = context.ID().Count();
+            // Console.WriteLine(idCount)
+
+            for (int i = 1; i < idCount; i++) {
+                name = context.ID(i).GetText();
+                // Console.WriteLine(name);
+                val = VarsDict.ElementAt(nesting-1).Value.VARS[name];
+                
+                VarsDict.ElementAt(nesting).Value.VARS.Add(name, val);
+            }
+
+            // Console.WriteLine(context.state().Count());
+            for (int i = 0; i < context.state().Count(); i++) {
+                Visit(context.state(i));
+            }
+            
+            int res;
+            if(context.INT() != null) {
+                res = int.Parse(context.INT().GetText());
+            } else if (context.expr() != null) {
+                res = int.Parse(Visit(context.expr()).ToString());
+            } else {
+                res = VarsDict[funName].VARS[context.ID(context.ID().Count()-1).GetText()];
+            }
+            VarsDict[funName].res = res;
+
+            downNest();
+            return res;
+        }
+
+        public override object VisitDefNoState([NotNull] DefNoStateContext context)
+        {
+            string funName = context.ID(0).GetText();
+            upNest(funName);
+
+            string name;
+            int val;
+
+            int idCount;
+            if (context.expr() == null && context.INT() == null) idCount = context.ID().Count()-1;
+            else idCount = context.ID().Count();
+
+            for (int i = 1; i < idCount; i++) {
+                name = context.ID(i).GetText();
+                val = VarsDict.ElementAt(nesting-1).Value.VARS[name];
+                
+                VarsDict.ElementAt(nesting).Value.VARS.Add(name, val);
+            }
+            
+            int res;
+            if(context.INT() != null) {
+                res = int.Parse(context.INT().GetText());
+            } else if (context.expr() != null) {
+                res = int.Parse(Visit(context.expr()).ToString());
+            } else {
+                res = VarsDict[funName].VARS[context.ID(context.ID().Count()-1).GetText()];
+            }
+            VarsDict[funName].res = res;
+
+            downNest();
+            return res;
         }
     }
 }

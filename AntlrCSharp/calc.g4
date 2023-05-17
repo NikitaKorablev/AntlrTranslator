@@ -39,4 +39,6 @@ print: 'print(' (INT|ID) ')'    # PrintIntId
 expr: (INT|ID) op (INT|ID)      # VarsExpression
     ;
 
-def: 'fun' ID '(' ID (',' ID)* ')' '{' state* SEP RETURN (ID|INT)'}';
+def: 'fun' ID '(' ID (',' ID)* ')' '{' state*? SEP RETURN (INT|ID|expr) SEP'}' # DefState
+    | 'fun' ID '(' ID (',' ID)* ')' '{'RETURN (INT|ID|expr) SEP '}' # DefNoState
+    ;

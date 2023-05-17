@@ -5,3 +5,9 @@ b = a + 1;
 print(b);
 
 print(6);
+
+fun e(a, b) {
+    return a + b;
+};
+
+print(e)

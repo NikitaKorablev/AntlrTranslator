@@ -166,7 +166,8 @@ public partial class calcBaseVisitor<Result> : AbstractParseTreeVisitor<Result>,
 	/// <return>The visitor result.</return>
 	public virtual Result VisitVarsExpression([NotNull] calcParser.VarsExpressionContext context) { return VisitChildren(context); }
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="calcParser.def"/>.
+	/// Visit a parse tree produced by the <c>DefState</c>
+	/// labeled alternative in <see cref="calcParser.def"/>.
 	/// <para>
 	/// The default implementation returns the result of calling <see cref="AbstractParseTreeVisitor{Result}.VisitChildren(IRuleNode)"/>
 	/// on <paramref name="context"/>.
@@ -174,5 +175,16 @@ public partial class calcBaseVisitor<Result> : AbstractParseTreeVisitor<Result>,
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	public virtual Result VisitDef([NotNull] calcParser.DefContext context) { return VisitChildren(context); }
+	public virtual Result VisitDefState([NotNull] calcParser.DefStateContext context) { return VisitChildren(context); }
+	/// <summary>
+	/// Visit a parse tree produced by the <c>DefNoState</c>
+	/// labeled alternative in <see cref="calcParser.def"/>.
+	/// <para>
+	/// The default implementation returns the result of calling <see cref="AbstractParseTreeVisitor{Result}.VisitChildren(IRuleNode)"/>
+	/// on <paramref name="context"/>.
+	/// </para>
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	public virtual Result VisitDefNoState([NotNull] calcParser.DefNoStateContext context) { return VisitChildren(context); }
 }

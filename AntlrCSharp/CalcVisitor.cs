@@ -115,9 +115,17 @@ public interface IcalcVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitVarsExpression([NotNull] calcParser.VarsExpressionContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="calcParser.def"/>.
+	/// Visit a parse tree produced by the <c>DefState</c>
+	/// labeled alternative in <see cref="calcParser.def"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitDef([NotNull] calcParser.DefContext context);
+	Result VisitDefState([NotNull] calcParser.DefStateContext context);
+	/// <summary>
+	/// Visit a parse tree produced by the <c>DefNoState</c>
+	/// labeled alternative in <see cref="calcParser.def"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitDefNoState([NotNull] calcParser.DefNoStateContext context);
 }

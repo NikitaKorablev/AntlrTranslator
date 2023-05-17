@@ -57,8 +57,9 @@ namespace AntlrCSharp
         {
             try
             {
-                // string input = "9 - 3";
-                string input = "9- 2 * (1 + 2) / 1 ; 10 * 20 / 10; 30 - 40";
+                StreamReader sr = new StreamReader("./prog.simple");
+                string input = sr.ReadToEnd();
+                // Console.WriteLine(input);
                 StringBuilder text = new StringBuilder();
                 text.AppendLine(input);
                 
@@ -69,15 +70,6 @@ namespace AntlrCSharp
 
                 CalcUserVisitor visitor = new CalcUserVisitor();
                 visitor.Visit(parser.prog());                
-
-                Console.WriteLine("\nResult: ");
-
-                int i = 0;
-                foreach(var var in visitor.res)
-                {
-                    Console.WriteLine($"{i}: {var}");
-                    i++;
-                }
             }
             catch (Exception ex)
             {                

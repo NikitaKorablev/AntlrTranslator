@@ -9,77 +9,182 @@ using Antlr4.Runtime.Tree;
 using AntlrCSharp;
 using static calcParser;
 
-// namespace AntlrCSharp {
-//     public class BasicCalcVisitor : calcBaseVisitor<object>
-//     {
-//         public List<CalcLine> Lines = new List<CalcLine>();
-
-//         public override object VisitLine(calcParser.LineContext context)
-//         {
-//             NameContext name = context.name();
-//             OpinionContext opinion = context.opinion();
-
-//             CalcLine line = new CalcLine() { Person = name.GetText(), Text = opinion.GetText().Trim('"') };
-//             Lines.Add(line);
-
-//             return line;
-//         }
-//     }
-// }
-
 namespace AntlrCSharp {
+    public class FUNCS {
+        public Dictionary<string, List<Dictionary<string, int>>> f = new Dictionary<string, List<Dictionary<string, int>>>();
+    }
+
     public class CalcUserVisitor : calcBaseVisitor<object>
     { 
-        public List<int> res = new List<int>();
+        public Dictionary<string, int> VARS = new Dictionary<string, int>();
+        
+        // list [0] - dictionary for function params
+        // list [1] - dictionary for vars in function
+        // public Dictionary<string, List<Dictionary<string, int>>> FUNCS = new Dictionary<string, List<Dictionary<string, int>>>(); 
+        public List<FUNCS> funcsList = new List<FUNCS>();
+
+
+        public void showDictionary() {
+            foreach (KeyValuePair<string, int> el in VARS) {
+                    Console.WriteLine($"{el.Key} = {el.Value}");
+                }
+        }
+
         public override object VisitOneLineProg([NotNull] OneLineProgContext context)
         {
             Console.WriteLine("OneLineProg");
-            int val = (int)Visit(context.expr());
-            res.Add(val);
-
-            return val;
+            return Visit(context.state());
         }
+
         public override object VisitMultLineProg([NotNull] MultLineProgContext context)
         {
             Console.WriteLine("MultLineProg");
             Visit(context.prog());
-            int val = (int)Visit(context.expr());
-            res.Add(val);
-
-            return res;
+            return Visit(context.state());
         }
-        public override object VisitParens([NotNull] ParensContext context)
+
+        // State variables
+        public override object VisitBaseLine([NotNull] BaseLineContext context)
         {
-            Console.WriteLine("Parens");
+            return Visit(context.let());
+        }
+        public override object VisitShow([NotNull] ShowContext context)
+        {
+            return Visit(context.print());
+        }
+        public override object VisitExpression([NotNull] ExpressionContext context)
+        {
             return Visit(context.expr());
         }
-
-        public override object VisitMulDiv([NotNull] MulDivContext context)
+        public override object VisitDefinition([NotNull] DefinitionContext context)
         {
-            int left = (int)Visit(context.expr(0));
-            int right = (int)Visit(context.expr(1));
-
-            Console.WriteLine($" T <- {left}{context.op.Text}{right}");
-
-            if (context.op.Type == calcParser.MUL) return left * right;
-            else return left / right;
+            return Visit(context.def());
         }
 
-        public override object VisitAddSub([NotNull] AddSubContext context)
+        //------Base-Line-(Let)-------------------------------------------------------
+        public override object VisitIDeqEXPR([NotNull] IDeqEXPRContext context)
         {
-            int left = (int)Visit(context.expr(0));
-            int right = (int)Visit(context.expr(1));
+            Console.WriteLine("IDeqEXPR");
+            string name = context.ID().GetText();
+            int val = int.Parse((string)Visit(context.expr()).ToString());
 
-            Console.WriteLine($" T <- {left}{context.op.Text}{right}");
+            VARS.Add(name, val);
+            return val;
+        }
+        
+        public override object VisitIDeqID([NotNull] IDeqIDContext context)
+        {
+            Console.WriteLine("IDeqID");
+            string firstVar = context.ID(0).GetText();
+            string secondVar = context.ID(1).GetText();
+            
+            int val = 0;
+            if (VARS.ContainsKey(secondVar)) val = VARS[secondVar];
+            else Console.Error.WriteLine($"Can`t find {secondVar} value");
 
-            if (context.op.Type == calcParser.ADD) return left + right;
-            else return left - right;
+            if (VARS.ContainsKey(firstVar)) VARS[firstVar] = val;
+            else VARS.Add(firstVar, val);
+
+            return val;
         }
 
-        public override object VisitInt([NotNull] IntContext context)
+        public override object VisitIDeqINT([NotNull] IDeqINTContext context)
         {
-            return int.Parse(context.INT().GetText());
+            Console.WriteLine("IDeqINT");
+            string name = context.ID().GetText();
+            int val = int.Parse(context.INT().GetText());
+
+            if (VARS.ContainsKey(name)) VARS[name] = val;
+            else VARS.Add(name, val);
+
+            return val;
         }
 
+        //------Expression--------------------------------------------------------
+        public int calcOp(char op, int a, int b) {
+            switch (op){
+                case '+': return a + b;
+                case '-': return a - b;
+                case '*': return a * b;
+                case '/': return a / b;
+                default: return 0;
+            }
+        }
+
+        public override object VisitVarsExpression([NotNull] VarsExpressionContext context)
+        {
+            Console.WriteLine("VarsExpression");
+            // Console.WriteLine(context.INT().GetText());
+            if (context.INT(0) != null && context.INT(1) != null)
+            {
+                int firstVal = int.Parse(context.INT(0).GetText());
+                int secondVal = int.Parse(context.INT(1).GetText());
+                char op = context.op().GetText()[0];
+
+                return calcOp(op, firstVal, secondVal);
+            } else if (context.INT(0) != null && context.ID(0) != null)
+            {
+                int firstVal = int.Parse(context.INT(0).GetText());
+                int secondVal = 1;
+                char op = context.op().GetText()[0];
+
+                string var = context.ID(0).GetText();
+                if (VARS.ContainsKey(var)) secondVal = VARS[var];
+                else Console.Error.WriteLine($"Can`t find {var} value");
+
+                return calcOp(op, firstVal, secondVal);
+            } else if (context.ID(0) != null && context.INT(0) != null)
+            {
+                int firstVal = 0;
+                int secondVal = int.Parse(context.INT(0).GetText());
+                char op = context.op().GetText()[0];
+
+                string var = context.ID(0).GetText();
+                if (VARS.ContainsKey(var)) firstVal = VARS[var];
+                else Console.Error.WriteLine($"Can`t find {var} value");
+
+                return calcOp(op, firstVal, secondVal);
+            } else // if (context.ID(0) != null && context.ID(1) != null)
+            {
+                int firstVal = 0;
+                int secondVal = 1;
+                char op = context.op().GetText()[0];
+
+                string firstVar = context.ID(0).GetText();
+                string secondVar = context.ID(1).GetText();
+
+                if (VARS.ContainsKey(firstVar)) firstVal = VARS[firstVar];
+                else Console.Error.WriteLine($"Can`t find {firstVar} value");
+
+                if (VARS.ContainsKey(firstVar)) secondVal = VARS[secondVar];
+                else Console.Error.WriteLine($"Can`t find {secondVar} value");
+
+                return calcOp(op, firstVal, secondVal);
+            }
+        }
+
+        //------Print--------------------------------------------------------
+        public override object VisitPrintIntId([NotNull] PrintIntIdContext context) {
+            Console.WriteLine("PrintIntId");
+            if (context.INT() != null) 
+            {
+                Console.WriteLine(context.INT().GetText());
+            }
+            else {
+                // showDictionary();
+                string var = (string)context.ID().GetText();
+
+                if (VARS.ContainsKey(var)) Console.WriteLine($"{var} = {VARS[var]}");
+                else Console.Error.WriteLine($"Can`t find {var} value");
+            }
+
+            return base.VisitPrintIntId(context);
+        }
+        public override object VisitDef([NotNull] DefContext context)
+        {
+
+
+            return base.VisitDef(context);
+        }
     }
 }
